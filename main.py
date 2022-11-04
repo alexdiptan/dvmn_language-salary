@@ -3,11 +3,11 @@ import requests as requests
 import common_func
 
 
-def get_hh_vacancies(url: str) -> dict:
+def get_hh_vacancies(url: str, search_text) -> dict:
     payload = {"specialization": "1.221",
                "area": "1",
                "period": 30,
-               "text": "Python"
+               "text": search_text
                }
     response = requests.get(url, params=payload)
     response.raise_for_status()
@@ -15,10 +15,21 @@ def get_hh_vacancies(url: str) -> dict:
     return response.json()
 
 
+def get_vacancies_count_by_pl(url: str, programming_languages: list) -> dict:
+    pl_vacancies_count = {}
+    for programming_language in programming_languages:
+        hh_vacancies = get_hh_vacancies(url, programming_language)
+        common_func.save_to_json(hh_vacancies, f'{programming_language}.json')
+        pl_vacancies_count[programming_language] = hh_vacancies['found']
+
+    return pl_vacancies_count
+
+
 def main():
+    programming_languages = ['Python', 'Java', 'Javascript']
     url = 'https://api.hh.ru/vacancies'
-    common_func.save_to_json(get_hh_vacancies(url), '1.json')
-    print(get_hh_vacancies(url)['found'])
+
+    print(get_vacancies_count_by_pl(url, programming_languages))
 
 
 if __name__ == '__main__':
