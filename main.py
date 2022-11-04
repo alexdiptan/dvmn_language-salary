@@ -1,21 +1,24 @@
 import requests as requests
 
+import common_func
 
-def get_hh_vacancies(url: str):
+
+def get_hh_vacancies(url: str) -> dict:
     payload = {"specialization": "1.221",
                "area": "1",
                "period": 30,
-               "text": "Программист"
+               "text": "Python"
                }
     response = requests.get(url, params=payload)
     response.raise_for_status()
 
-    print(response.json())
+    return response.json()
 
 
 def main():
     url = 'https://api.hh.ru/vacancies'
-    get_hh_vacancies(url)
+    common_func.save_to_json(get_hh_vacancies(url), '1.json')
+    print(get_hh_vacancies(url)['found'])
 
 
 if __name__ == '__main__':
