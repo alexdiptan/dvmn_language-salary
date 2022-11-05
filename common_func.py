@@ -6,7 +6,7 @@ def save_to_json(json_data: dict, file_name: str):
         f.write(json.dumps(json_data, ensure_ascii=False, indent=2))
 
 
-def get_json_data_from_file(file_name):
+def get_json_from_file(file_name):
     with open(file_name, 'r', encoding='utf-8') as f:
         json_data = json.load(f)
         return json_data
