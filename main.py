@@ -3,15 +3,16 @@ import requests as requests
 import common_func
 
 
-def get_hh_vacancies(url: str, search_text) -> dict:
+def get_hh_vacancies(url: str, search_text: str, page: int = 0, per_page: int = 100) -> dict:
     payload = {"specialization": "1.221",
                "area": "1",
                "period": 30,
-               "text": search_text
+               "text": search_text,
+               "page": page,
+               "per_page": per_page
                }
     response = requests.get(url, params=payload)
     response.raise_for_status()
-    print(f'Search string is: {search_text}, {response.status_code=}')
 
     return response.json()
 
@@ -47,14 +48,31 @@ def get_statistic_by_pl(pl_vacancies: dict) -> dict:
     return pl_info
 
 
+def get_vacancies_from_all_pages(url, pl):
+    pl_vacancies_data_template = get_hh_vacancies(url, pl)
+    count_of_vacancies_pages = pl_vacancies_data_template['pages']
+
+    if count_of_vacancies_pages > 0:
+        pl_vacancies_data_template['items'] = []
+        for page in range(count_of_vacancies_pages):
+            print(f'Programming language is: {pl}, {page=} from {count_of_vacancies_pages}')
+            vacancies_from_page = get_hh_vacancies(url, pl, page)['items']
+            pl_vacancies_data_template['items'].extend(vacancies_from_page)
+
+    return pl_vacancies_data_template
+
+
 def main():
     programming_languages = ['Python', 'Java', 'Javascript']
-    languages_info = {}
     url = 'https://api.hh.ru/vacancies'
+    languages_info = {}
 
     for pl in programming_languages:
-        pl_vacancies = get_hh_vacancies(url, pl)  # common_func.get_json_from_file('Python.json')
+        pl_vacancies = get_vacancies_from_all_pages(url, pl)
         languages_info[pl] = get_statistic_by_pl(pl_vacancies)
+        count_vacancies_by_pl = len(pl_vacancies['items'])
+        print(f'{count_vacancies_by_pl=}')
+        common_func.save_to_json(pl_vacancies, f'{pl}.json')
 
     print(languages_info)
 
