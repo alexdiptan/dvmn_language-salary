@@ -1,3 +1,4 @@
+import argparse
 import logging
 
 import requests as requests
@@ -56,8 +57,8 @@ def get_vacancies_from_all_pages(url, pl):
 
     if count_of_vacancies_pages > 0:
         pl_vacancies_data_template['items'] = []
+        logging.info(f'Programming language is: {pl}, receiving vacancies from {count_of_vacancies_pages} pages.')
         for page in range(count_of_vacancies_pages):
-            logging.info(f'Programming language is: {pl}, {page} page of {count_of_vacancies_pages}')
             vacancies_from_page = get_hh_vacancies(url, pl, page)['items']
             pl_vacancies_data_template['items'].extend(vacancies_from_page)
 
@@ -66,16 +67,20 @@ def get_vacancies_from_all_pages(url, pl):
 
 def main():
     logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
-    programming_languages = ['Python', 'Java', 'Javascript']
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-l", "--programming_languages", default=['Python'], nargs='*',
+                        help="Salary statistics by programming languages.")
+    args = parser.parse_args()
+
     url = 'https://api.hh.ru/vacancies'
     languages_info = {}
 
-    for pl in programming_languages:
+    for pl in args.programming_languages:
         pl_vacancies = get_vacancies_from_all_pages(url, pl)
         languages_info[pl] = get_statistic_by_pl(pl_vacancies)
         common_func.save_to_json(pl_vacancies, f'{pl}.json')
-
-    logging.info(languages_info)
+        logging.info(languages_info)
 
 
 if __name__ == '__main__':
