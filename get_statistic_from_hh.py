@@ -3,8 +3,6 @@ import logging
 
 import requests as requests
 
-import common_func
-
 
 def get_hh_vacancies(url: str, search_text: str, page: int = 0, per_page: int = 100) -> dict:
     payload = {"specialization": "1.221",
@@ -93,7 +91,6 @@ def main():
         languages_info = {}
         pl_vacancies = get_vacancies_from_all_pages(url, pl)
         languages_info[pl] = get_statistic_by_pl(pl_vacancies)
-        common_func.save_to_json(pl_vacancies, f'{pl}.json')
         logging.info(beautify_output(languages_info))
 
     logging.info(f'All data processed. Exit.')
