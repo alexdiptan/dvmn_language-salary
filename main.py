@@ -16,38 +16,47 @@ def get_hh_vacancies(url: str, search_text) -> dict:
     return response.json()
 
 
-def get_vacancies_count_by_pl(url: str, search_strings: list) -> dict:
-    pl_vacancies_count = {}
-    for search_string in search_strings:
-        hh_vacancies = get_hh_vacancies(url, search_string)
-        # common_func.save_to_json(hh_vacancies, f'{programming_language}.json')
-        pl_vacancies_count[search_string] = hh_vacancies['found']
-
-    return pl_vacancies_count
-
-
 def predict_rub_salary(vacancy: dict):
-    print(vacancy['salary'])
     if vacancy['salary'] and vacancy['salary']['currency'] == 'RUR':
         if vacancy['salary']['from'] is not None and vacancy['salary']['to'] is not None:
-            return (vacancy['salary']['from'] + vacancy['salary']['to']) // 2
+            return int((vacancy['salary']['from'] + vacancy['salary']['to']) // 2)
         elif vacancy['salary']['from'] is not None:
-            return vacancy['salary']['from'] * 1.2
+            return int(vacancy['salary']['from'] * 1.2)
         else:
-            return vacancy['salary']['to'] * 0.8
+            return int(vacancy['salary']['to'] * 0.8)
     else:
         return
 
 
+def average(salary_avg: list) -> int:
+    return int(sum(salary_avg) / len(salary_avg))
+
+
+def get_statistic_by_pl(pl_vacancies: dict) -> dict:
+    pl_info = {}
+    salaries = []
+    for vacancy in pl_vacancies['items']:
+        vacancy_avg_salary = predict_rub_salary(vacancy)
+        if vacancy_avg_salary:
+            salaries.append(vacancy_avg_salary)
+        pl_info['vacancies_found'] = pl_vacancies['found']
+
+    pl_info['vacancies_processed'] = len(salaries)
+    pl_info['average_salary'] = average(salaries)
+
+    return pl_info
+
+
 def main():
     programming_languages = ['Python', 'Java', 'Javascript']
+    languages_info = {}
     url = 'https://api.hh.ru/vacancies'
-    python_vacancies = get_hh_vacancies(url, 'Python') #common_func.get_json_from_file('Python.json')
 
-    for vacancy in python_vacancies['items']:
-        print(predict_rub_salary(vacancy))
+    for pl in programming_languages:
+        pl_vacancies = get_hh_vacancies(url, pl)  # common_func.get_json_from_file('Python.json')
+        languages_info[pl] = get_statistic_by_pl(pl_vacancies)
 
-    # print(get_vacancies_count_by_pl(url, programming_languages))
+    print(languages_info)
 
 
 if __name__ == '__main__':
