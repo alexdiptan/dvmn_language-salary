@@ -57,12 +57,24 @@ def get_vacancies_from_all_pages(url, pl):
 
     if count_of_vacancies_pages > 0:
         pl_vacancies_data_template['items'] = []
-        logging.info(f'Programming language is: {pl}, receiving vacancies from {count_of_vacancies_pages} pages.')
         for page in range(count_of_vacancies_pages):
             vacancies_from_page = get_hh_vacancies(url, pl, page)['items']
             pl_vacancies_data_template['items'].extend(vacancies_from_page)
 
     return pl_vacancies_data_template
+
+
+def beautify_output(languages_info: dict):
+    language_beautified_output = ''
+
+    for language_name, language_info in languages_info.items():
+        language_beautified_output = (f"\n---Programming language statistic---\n"
+                                      f"Programming language is: {language_name} \n"
+                                      f"vacancies_found: {language_info['vacancies_found']} \n"
+                                      f"vacancies_processed: {language_info['vacancies_processed']} \n"
+                                      f"average_salary: {language_info['average_salary']}")
+
+    return language_beautified_output
 
 
 def main():
@@ -74,13 +86,17 @@ def main():
     args = parser.parse_args()
 
     url = 'https://api.hh.ru/vacancies'
-    languages_info = {}
+
+    logging.info(f'Start receiving data')
 
     for pl in args.programming_languages:
+        languages_info = {}
         pl_vacancies = get_vacancies_from_all_pages(url, pl)
         languages_info[pl] = get_statistic_by_pl(pl_vacancies)
         common_func.save_to_json(pl_vacancies, f'{pl}.json')
-        logging.info(languages_info)
+        logging.info(beautify_output(languages_info))
+
+    logging.info(f'All data processed. Exit.')
 
 
 if __name__ == '__main__':
