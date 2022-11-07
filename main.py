@@ -71,11 +71,11 @@ def beautify_output(languages_info: dict):
 
 
 def predict_salary(salary_from, salary_to):
-    if (salary_from != 0 or salary_from is not None) and (salary_to != 0 or salary_to is not None):
+    if salary_from is not None and salary_to is not None:
         return int((salary_from + salary_to) // 2)
-    elif salary_from != 0 or salary_from is not None:
+    elif salary_from is not None:
         return int(salary_from * 1.2)
-    elif salary_to != 0 or salary_to is not None:
+    elif salary_to is not None:
         return int(salary_to * 0.8)
     else:
         return
@@ -83,6 +83,10 @@ def predict_salary(salary_from, salary_to):
 
 def predict_rub_salary_sj(vacancy: dict):
     if vacancy['currency'] == 'rub':
+        if vacancy['payment_from'] == 0:
+            vacancy['payment_from'] = None
+        if vacancy['payment_to'] == 0:
+            vacancy['payment_to'] = None
         return predict_salary(vacancy['payment_from'], vacancy['payment_to'])
 
 
@@ -113,7 +117,7 @@ def main():
     sj_vacancies = get_vacancy_sj(sj_url, sj_payload, sj_params)['objects']
 
     for sj_vacancy in sj_vacancies:
-        # print(sj_vacancy)
+        print(sj_vacancy)
         print(sj_vacancy['profession'], predict_rub_salary_sj(sj_vacancy))
 
     logging.info(f'Start receiving data')
