@@ -4,6 +4,13 @@ import logging
 import requests as requests
 
 
+def get_vacancy_sj(url, payload=None, params=None):
+    response = requests.get(url, headers=payload, params=params)
+    response.raise_for_status()
+
+    return response.json()
+
+
 def get_hh_vacancies(url: str, search_text: str, page: int = 0, per_page: int = 100) -> dict:
     payload = {"specialization": "1.221",
                "area": "1",
@@ -18,18 +25,6 @@ def get_hh_vacancies(url: str, search_text: str, page: int = 0, per_page: int = 
     return response.json()
 
 
-def predict_rub_salary(vacancy: dict):
-    if vacancy['salary'] and vacancy['salary']['currency'] == 'RUR':
-        if vacancy['salary']['from'] is not None and vacancy['salary']['to'] is not None:
-            return int((vacancy['salary']['from'] + vacancy['salary']['to']) // 2)
-        elif vacancy['salary']['from'] is not None:
-            return int(vacancy['salary']['from'] * 1.2)
-        else:
-            return int(vacancy['salary']['to'] * 0.8)
-    else:
-        return
-
-
 def average(salary_avg: list) -> int:
     return int(sum(salary_avg) / len(salary_avg))
 
@@ -38,7 +33,7 @@ def get_statistic_by_pl(pl_vacancies: dict) -> dict:
     pl_info = {}
     salaries = []
     for vacancy in pl_vacancies['items']:
-        vacancy_avg_salary = predict_rub_salary(vacancy)
+        vacancy_avg_salary = predict_rub_salary_hh(vacancy)
         if vacancy_avg_salary:
             salaries.append(vacancy_avg_salary)
         pl_info['vacancies_found'] = pl_vacancies['found']
@@ -75,7 +70,39 @@ def beautify_output(languages_info: dict):
     return language_beautified_output
 
 
+def predict_salary(salary_from, salary_to):
+    if (salary_from != 0 or salary_from is not None) and (salary_to != 0 or salary_to is not None):
+        return int((salary_from + salary_to) // 2)
+    elif salary_from != 0 or salary_from is not None:
+        return int(salary_from * 1.2)
+    elif salary_to != 0 or salary_to is not None:
+        return int(salary_to * 0.8)
+    else:
+        return
+
+
+def predict_rub_salary_sj(vacancy: dict):
+    if vacancy['currency'] == 'rub':
+        return predict_salary(vacancy['payment_from'], vacancy['payment_to'])
+
+
+def predict_rub_salary_hh(vacancy: dict):
+    if vacancy['salary'] and vacancy['salary']['currency'] == 'RUR':
+        return predict_salary(vacancy['salary']['from'], vacancy['salary']['to'])
+
+
 def main():
+    sj_token = 'v3.r.14477198.2544ffb7d2a73740f4d56682c83df10ba1d9a4f4.525999755030bd53f285987ff9139e64c752f163'
+    sj_payload = {'X-Api-App-Id': sj_token,
+                  'Content-Type': "application/x-www-form-urlencoded"
+                  }
+    sj_params = {"town": 4,
+                 "catalogues": 48,
+                 }
+    sj_url = 'https://api.superjob.ru/2.0/vacancies/'
+
+    hh_url = 'https://api.hh.ru/vacancies'
+
     logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
     parser = argparse.ArgumentParser()
@@ -83,15 +110,19 @@ def main():
                         help="Salary statistics by programming languages.")
     args = parser.parse_args()
 
-    url = 'https://api.hh.ru/vacancies'
+    sj_vacancies = get_vacancy_sj(sj_url, sj_payload, sj_params)['objects']
+
+    for sj_vacancy in sj_vacancies:
+        # print(sj_vacancy)
+        print(sj_vacancy['profession'], predict_rub_salary_sj(sj_vacancy))
 
     logging.info(f'Start receiving data')
 
-    for pl in args.programming_languages:
-        languages_info = {}
-        pl_vacancies = get_vacancies_from_all_pages(url, pl)
-        languages_info[pl] = get_statistic_by_pl(pl_vacancies)
-        logging.info(beautify_output(languages_info))
+    # for pl in args.programming_languages:
+    #     languages_info = {}
+    #     pl_vacancies = get_vacancies_from_all_pages(url, pl)
+    #     languages_info[pl] = get_statistic_by_pl(pl_vacancies)
+    #     logging.info(beautify_output(languages_info))
 
     logging.info(f'All data processed. Exit.')
 
