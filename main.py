@@ -4,7 +4,7 @@ import logging
 import requests as requests
 
 
-def get_vacancy_sj(url, payload=None, params=None):
+def get_sj_vacancies(url, payload=None, params=None):
     response = requests.get(url, headers=payload, params=params)
     response.raise_for_status()
 
@@ -26,14 +26,18 @@ def get_hh_vacancies(url: str, search_text: str, page: int = 0, per_page: int = 
 
 
 def average(salary_avg: list) -> int:
-    return int(sum(salary_avg) / len(salary_avg))
+    try:
+        return int(sum(salary_avg) / len(salary_avg))
+    except ZeroDivisionError:
+        return 0
 
 
-def get_statistic_by_pl(pl_vacancies: dict) -> dict:
+def get_statistic_by_pl_hh(pl_vacancies: dict) -> dict:
     pl_info = {}
     salaries = []
     for vacancy in pl_vacancies['items']:
         vacancy_avg_salary = predict_rub_salary_hh(vacancy)
+
         if vacancy_avg_salary:
             salaries.append(vacancy_avg_salary)
         pl_info['vacancies_found'] = pl_vacancies['found']
@@ -44,7 +48,23 @@ def get_statistic_by_pl(pl_vacancies: dict) -> dict:
     return pl_info
 
 
-def get_vacancies_from_all_pages(url, pl):
+def get_statistic_by_pl_sj(pl_vacancies: dict) -> dict:
+    pl_info = {}
+    salaries = []
+    for vacancy in pl_vacancies['objects']:
+        vacancy_avg_salary = predict_rub_salary_sj(vacancy)
+
+        if vacancy_avg_salary:
+            salaries.append(vacancy_avg_salary)
+        pl_info['vacancies_found'] = pl_vacancies['total']
+
+    pl_info['vacancies_processed'] = len(salaries)
+    pl_info['average_salary'] = average(salaries)
+
+    return pl_info
+
+
+def get_vacancies_from_all_pages_hh(url, pl):
     pl_vacancies_data_template = get_hh_vacancies(url, pl)
     count_of_vacancies_pages = pl_vacancies_data_template['pages']
 
@@ -53,6 +73,20 @@ def get_vacancies_from_all_pages(url, pl):
         for page in range(count_of_vacancies_pages):
             vacancies_from_page = get_hh_vacancies(url, pl, page)['items']
             pl_vacancies_data_template['items'].extend(vacancies_from_page)
+
+    return pl_vacancies_data_template
+
+
+def get_vacancies_from_all_pages_sj(url, params, payload):
+    pl_vacancies_data_template = get_sj_vacancies(url, payload, params)
+    page = 0
+
+    while get_sj_vacancies(url, payload, params)['more']:
+        pl_vacancies_data_template['objects'] = []
+        params['page'] = page
+        vacancies_from_page = get_sj_vacancies(url, payload, params)['objects']
+        pl_vacancies_data_template['objects'].extend(vacancies_from_page)
+        page += 1
 
     return pl_vacancies_data_template
 
@@ -71,14 +105,15 @@ def beautify_output(languages_info: dict):
 
 
 def predict_salary(salary_from, salary_to):
+    salary = None
     if salary_from is not None and salary_to is not None:
-        return int((salary_from + salary_to) // 2)
+        salary = int((salary_from + salary_to) // 2)
     elif salary_from is not None:
-        return int(salary_from * 1.2)
+        salary = int(salary_from * 1.2)
     elif salary_to is not None:
-        return int(salary_to * 0.8)
-    else:
-        return
+        salary = int(salary_to * 0.8)
+
+    return salary
 
 
 def predict_rub_salary_sj(vacancy: dict):
@@ -102,6 +137,10 @@ def main():
                   }
     sj_params = {"town": 4,
                  "catalogues": 48,
+                 "count": 10,
+                 "keywords": "Python",
+                 "srws": 1,
+                 "page": 0
                  }
     sj_url = 'https://api.superjob.ru/2.0/vacancies/'
 
@@ -110,17 +149,18 @@ def main():
     logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l", "--programming_languages", default=['Python'], nargs='*',
+    parser.add_argument("-l", "--programming_languages", default=['Javascript'], nargs='*',
                         help="Salary statistics by programming languages.")
     args = parser.parse_args()
+    sj_languages_info = {}
+    for programming_language in args.programming_languages:
+        sj_params["keywords"] = programming_language
+        sj_vacancies = get_vacancies_from_all_pages_sj(sj_url, sj_params, sj_payload)
+        sj_languages_info[programming_language] = get_statistic_by_pl_sj(sj_vacancies)
+        sj_params["page"] = 0
+    print(sj_languages_info)
 
-    sj_vacancies = get_vacancy_sj(sj_url, sj_payload, sj_params)['objects']
-
-    for sj_vacancy in sj_vacancies:
-        print(sj_vacancy)
-        print(sj_vacancy['profession'], predict_rub_salary_sj(sj_vacancy))
-
-    logging.info(f'Start receiving data')
+    # logging.info(f'Start receiving data')
 
     # for pl in args.programming_languages:
     #     languages_info = {}
@@ -128,7 +168,7 @@ def main():
     #     languages_info[pl] = get_statistic_by_pl(pl_vacancies)
     #     logging.info(beautify_output(languages_info))
 
-    logging.info(f'All data processed. Exit.')
+    # logging.info(f'All data processed. Exit.')
 
 
 if __name__ == '__main__':
