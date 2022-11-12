@@ -83,11 +83,11 @@ def draw_table(languages_statistic: dict, title: str):
 
 def predict_salary(salary_from, salary_to):
     salary = None
-    if salary_from is not None and salary_to is not None:
+    if salary_from and salary_to:
         salary = int((salary_from + salary_to) // 2)
-    elif salary_from is not None:
+    elif salary_from:
         salary = int(salary_from * 1.2)
-    elif salary_to is not None:
+    elif salary_to:
         salary = int(salary_to * 0.8)
 
     return salary
