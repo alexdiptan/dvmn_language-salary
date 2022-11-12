@@ -20,16 +20,16 @@ def average(salary_avg: list) -> int:
         return 0
 
 
-def get_statistic_by_programming_language(vacancies: dict, source='hh') -> dict:
+def get_statistic_by_programming_language(vacancies: dict, vacancies_found, source='hh') -> dict:
     programming_language_statistic = {}
     salaries = []
-    for vacancy in vacancies['items'] if source == 'hh' else vacancies['objects']:
+    for vacancy in vacancies:
         vacancy_avg_salary = predict_rub_salary_hh(vacancy) if source == 'hh' else predict_rub_salary_sj(vacancy)
 
         if vacancy_avg_salary:
             salaries.append(vacancy_avg_salary)
 
-        programming_language_statistic['vacancies_found'] = vacancies['found'] if source == 'hh' else vacancies['total']
+        programming_language_statistic['vacancies_found'] = vacancies_found
 
     programming_language_statistic['vacancies_processed'] = len(salaries)
     programming_language_statistic['average_salary'] = average(salaries)
@@ -128,7 +128,8 @@ def get_hh_statistic(programming_languages: list) -> dict:
     for programming_language in programming_languages:
         hh_params['text'] = programming_language
         vacancies = get_vacancies_from_all_pages_hh(hh_url, hh_params)
-        hh_statistic_by_languages[programming_language] = get_statistic_by_programming_language(vacancies)
+        hh_statistic_by_languages[programming_language] = get_statistic_by_programming_language(vacancies['items'],
+                                                                                                vacancies['found'])
 
     return hh_statistic_by_languages
 
@@ -156,7 +157,9 @@ def get_sj_statistic(programming_languages: list, token: str) -> dict:
     for programming_language in programming_languages:
         sj_params["keywords"] = programming_language
         sj_vacancies = get_vacancies_from_all_pages_sj(sj_url, sj_params, sj_payload)
-        sj_statistic_by_languages[programming_language] = get_statistic_by_programming_language(sj_vacancies, 'sj')
+        sj_statistic_by_languages[programming_language] = get_statistic_by_programming_language(sj_vacancies['objects'],
+                                                                                                sj_vacancies['total'],
+                                                                                                'sj')
         sj_params["page"] = 0
 
     return sj_statistic_by_languages
