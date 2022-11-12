@@ -20,16 +20,16 @@ def average(salary_avg: list) -> int:
         return 0
 
 
-def get_statistic_by_pl(pl_vacancies: dict, source='hh') -> dict:
+def get_statistic_by_programming_language(vacancies: dict, source='hh') -> dict:
     programming_language_statistic = {}
     salaries = []
-    for vacancy in pl_vacancies['items'] if source == 'hh' else pl_vacancies['objects']:
+    for vacancy in vacancies['items'] if source == 'hh' else vacancies['objects']:
         vacancy_avg_salary = predict_rub_salary_hh(vacancy) if source == 'hh' else predict_rub_salary_sj(vacancy)
 
         if vacancy_avg_salary:
             salaries.append(vacancy_avg_salary)
 
-        programming_language_statistic['vacancies_found'] = pl_vacancies['found'] if source == 'hh' else pl_vacancies['total']
+        programming_language_statistic['vacancies_found'] = vacancies['found'] if source == 'hh' else vacancies['total']
 
     programming_language_statistic['vacancies_processed'] = len(salaries)
     programming_language_statistic['average_salary'] = average(salaries)
@@ -52,28 +52,30 @@ def get_vacancies_from_all_pages_hh(url, params):
 
 
 def get_vacancies_from_all_pages_sj(url, params, payload):
-    pl_vacancies_data_template = get_vacancies(url, params, payload)
+    vacancies_search_result = get_vacancies(url, params, payload)
     page = 0
 
     while get_vacancies(url, params, payload)['more']:
-        pl_vacancies_data_template['objects'] = []
+        vacancies_search_result['objects'] = []
         params['page'] = page
         vacancies_from_page = get_vacancies(url, params, payload)['objects']
-        pl_vacancies_data_template['objects'].extend(vacancies_from_page)
+        vacancies_search_result['objects'].extend(vacancies_from_page)
         page += 1
 
-    return pl_vacancies_data_template
+    return vacancies_search_result
 
 
-def draw_table(languages_info: dict, title: str):
-    pl_info = [['Язык программирования', 'Вакансий найдено', 'Вакансий обработано', 'Средняя зарплата']]
+def draw_table(languages_statistic: dict, title: str):
+    programming_language_data_for_table = [['Язык программирования', 'Вакансий найдено',
+                                            'Вакансий обработано', 'Средняя зарплата']]
 
-    for programming_lang, pl_statistic in languages_info.items():
-        _ = [programming_lang, pl_statistic['vacancies_found'], pl_statistic['vacancies_processed'],
-             pl_statistic['average_salary']]
-        pl_info.append(_)
+    for programming_lang, statistic_by_programming_language in languages_statistic.items():
+        _ = [programming_lang, statistic_by_programming_language['vacancies_found'],
+             statistic_by_programming_language['vacancies_processed'],
+             statistic_by_programming_language['average_salary']]
+        programming_language_data_for_table.append(_)
 
-    table_instance = AsciiTable(pl_info, title)
+    table_instance = AsciiTable(programming_language_data_for_table, title)
     table_instance.justify_columns[4] = 'right'
     print(table_instance.table)
 
@@ -123,8 +125,8 @@ def get_hh_statistic(programming_languages: list) -> dict:
 
     for programming_language in programming_languages:
         hh_params['text'] = programming_language
-        pl_vacancies = get_vacancies_from_all_pages_hh(hh_url, hh_params)
-        hh_statistic_by_languages[programming_language] = get_statistic_by_pl(pl_vacancies)
+        vacancies = get_vacancies_from_all_pages_hh(hh_url, hh_params)
+        hh_statistic_by_languages[programming_language] = get_statistic_by_programming_language(vacancies)
 
     return hh_statistic_by_languages
 
@@ -152,7 +154,7 @@ def get_sj_statistic(programming_languages: list, token: str) -> dict:
     for programming_language in programming_languages:
         sj_params["keywords"] = programming_language
         sj_vacancies = get_vacancies_from_all_pages_sj(sj_url, sj_params, sj_payload)
-        sj_statistic_by_languages[programming_language] = get_statistic_by_pl(sj_vacancies, 'sj')
+        sj_statistic_by_languages[programming_language] = get_statistic_by_programming_language(sj_vacancies, 'sj')
         sj_params["page"] = 0
 
     return sj_statistic_by_languages
