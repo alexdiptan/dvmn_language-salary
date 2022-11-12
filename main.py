@@ -21,33 +21,34 @@ def average(salary_avg: list) -> int:
 
 
 def get_statistic_by_pl(pl_vacancies: dict, source='hh') -> dict:
-    pl_info = {}
+    programming_language_statistic = {}
     salaries = []
     for vacancy in pl_vacancies['items'] if source == 'hh' else pl_vacancies['objects']:
         vacancy_avg_salary = predict_rub_salary_hh(vacancy) if source == 'hh' else predict_rub_salary_sj(vacancy)
 
         if vacancy_avg_salary:
             salaries.append(vacancy_avg_salary)
-        pl_info['vacancies_found'] = pl_vacancies['found'] if source == 'hh' else pl_vacancies['total']
 
-    pl_info['vacancies_processed'] = len(salaries)
-    pl_info['average_salary'] = average(salaries)
+        programming_language_statistic['vacancies_found'] = pl_vacancies['found'] if source == 'hh' else pl_vacancies['total']
 
-    return pl_info
+    programming_language_statistic['vacancies_processed'] = len(salaries)
+    programming_language_statistic['average_salary'] = average(salaries)
+
+    return programming_language_statistic
 
 
 def get_vacancies_from_all_pages_hh(url, params):
-    pl_vacancies_data_template = get_vacancies(url, params)
-    count_of_vacancies_pages = pl_vacancies_data_template['pages']
+    vacancies_search_result = get_vacancies(url, params)
+    count_of_pages = vacancies_search_result['pages']
 
-    if count_of_vacancies_pages > 0:
-        pl_vacancies_data_template['items'] = []
-        for page in range(count_of_vacancies_pages):
+    if count_of_pages > 0:
+        vacancies_search_result['items'] = []
+        for page in range(count_of_pages):
             params['page'] = page
             vacancies_from_page = get_vacancies(url, params)['items']
-            pl_vacancies_data_template['items'].extend(vacancies_from_page)
+            vacancies_search_result['items'].extend(vacancies_from_page)
 
-    return pl_vacancies_data_template
+    return vacancies_search_result
 
 
 def get_vacancies_from_all_pages_sj(url, params, payload):
@@ -103,46 +104,58 @@ def predict_rub_salary_hh(vacancy: dict):
         return predict_salary(vacancy['salary']['from'], vacancy['salary']['to'])
 
 
-def hh_statistic(programming_languages: list) -> dict:
-    hh_languages_info = {}
+def get_hh_statistic(programming_languages: list) -> dict:
+    professional_code_programmer = '1.221'
+    code_of_moscow_city = '1'
+    search_vacancies_period_in_days = 30
+    vacancies_count_on_page = 100
+    start_from_page = 0
+
+    hh_statistic_by_languages = {}
     hh_url = 'https://api.hh.ru/vacancies'
-    hh_params = {"specialization": "1.221",
-                 "area": "1",
-                 "period": 30,
+    hh_params = {"specialization": professional_code_programmer,
+                 "area": code_of_moscow_city,
+                 "period": search_vacancies_period_in_days,
                  "text": "Python",
-                 "page": 0,
-                 "per_page": 100
+                 "page": start_from_page,
+                 "per_page": vacancies_count_on_page
                  }
 
     for programming_language in programming_languages:
         hh_params['text'] = programming_language
         pl_vacancies = get_vacancies_from_all_pages_hh(hh_url, hh_params)
-        hh_languages_info[programming_language] = get_statistic_by_pl(pl_vacancies)
+        hh_statistic_by_languages[programming_language] = get_statistic_by_pl(pl_vacancies)
 
-    return hh_languages_info
+    return hh_statistic_by_languages
 
 
-def sj_statistic(programming_languages: list, token: str) -> dict:
-    sj_languages_info = {}
+def get_sj_statistic(programming_languages: list, token: str) -> dict:
+    code_of_moscow_city = 4
+    professional_code_programmer = 48
+    vacancies_count_on_page = 10
+    start_from_page = 0
+    search_text_in_heading = 1
+
+    sj_statistic_by_languages = {}
     sj_payload = {'X-Api-App-Id': token,
                   'Content-Type': "application/x-www-form-urlencoded"
                   }
-    sj_params = {"town": 4,
-                 "catalogues": 48,
-                 "count": 10,
+    sj_params = {"town": code_of_moscow_city,
+                 "catalogues": professional_code_programmer,
+                 "count": vacancies_count_on_page,
                  "keywords": "Python",
-                 "srws": 1,
-                 "page": 0
+                 "srws": search_text_in_heading,
+                 "page": start_from_page
                  }
     sj_url = 'https://api.superjob.ru/2.0/vacancies/'
 
     for programming_language in programming_languages:
         sj_params["keywords"] = programming_language
         sj_vacancies = get_vacancies_from_all_pages_sj(sj_url, sj_params, sj_payload)
-        sj_languages_info[programming_language] = get_statistic_by_pl(sj_vacancies, 'sj')
+        sj_statistic_by_languages[programming_language] = get_statistic_by_pl(sj_vacancies, 'sj')
         sj_params["page"] = 0
 
-    return sj_languages_info
+    return sj_statistic_by_languages
 
 
 def main():
@@ -154,8 +167,8 @@ def main():
                         help="Salary statistics by programming languages.")
     args = parser.parse_args()
 
-    draw_table(hh_statistic(args.programming_languages), 'HeadHunter Moscow')
-    draw_table(sj_statistic(args.programming_languages, sj_token), 'SuperJob Moscow')
+    draw_table(get_hh_statistic(args.programming_languages), 'HeadHunter Moscow')
+    draw_table(get_sj_statistic(args.programming_languages, sj_token), 'SuperJob Moscow')
 
 
 if __name__ == '__main__':
