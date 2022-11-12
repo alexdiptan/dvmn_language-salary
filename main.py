@@ -56,6 +56,8 @@ def get_vacancies_from_all_pages_sj(url, params, payload):
     vacancies_search_result = get_vacancies(url, params, payload)
     page = 0
 
+    if not vacancies_search_result['more']:
+        return vacancies_search_result
     while get_vacancies(url, params, payload)['more']:
         vacancies_search_result['objects'] = []
         params['page'] = page
@@ -71,10 +73,10 @@ def draw_table(languages_statistic: dict, title: str):
                                             'Вакансий обработано', 'Средняя зарплата']]
 
     for programming_lang, statistic_by_programming_language in languages_statistic.items():
-        _ = [programming_lang, statistic_by_programming_language['vacancies_found'],
-             statistic_by_programming_language['vacancies_processed'],
-             statistic_by_programming_language['average_salary']]
-        programming_language_data_for_table.append(_)
+        programming_lang_stat = [programming_lang, statistic_by_programming_language['vacancies_found'],
+                                 statistic_by_programming_language['vacancies_processed'],
+                                 statistic_by_programming_language['average_salary']]
+        programming_language_data_for_table.append(programming_lang_stat)
 
     table_instance = AsciiTable(programming_language_data_for_table, title)
     table_instance.justify_columns[4] = 'right'
