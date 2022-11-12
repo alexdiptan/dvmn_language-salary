@@ -41,12 +41,13 @@ def get_vacancies_from_all_pages_hh(url, params):
     vacancies_search_result = get_vacancies(url, params)
     count_of_pages = vacancies_search_result['pages']
 
-    if count_of_pages:
-        vacancies_search_result['items'] = []
-        for page in range(count_of_pages):
-            params['page'] = page
-            vacancies_from_page = get_vacancies(url, params)['items']
-            vacancies_search_result['items'].extend(vacancies_from_page)
+    if not count_of_pages:
+        return
+    vacancies_search_result['items'] = []
+    for page in range(count_of_pages):
+        params['page'] = page
+        vacancies_from_page = get_vacancies(url, params)['items']
+        vacancies_search_result['items'].extend(vacancies_from_page)
 
     return vacancies_search_result
 
@@ -93,12 +94,13 @@ def predict_salary(salary_from, salary_to):
 
 
 def predict_rub_salary_sj(vacancy: dict):
-    if vacancy['currency'] == 'rub':
-        if vacancy['payment_from'] == 0:
-            vacancy['payment_from'] = None
-        if vacancy['payment_to'] == 0:
-            vacancy['payment_to'] = None
-        return predict_salary(vacancy['payment_from'], vacancy['payment_to'])
+    if vacancy['currency'] != 'rub':
+        return
+    if not vacancy['payment_from']:
+        vacancy['payment_from'] = None
+    if not vacancy['payment_to']:
+        vacancy['payment_to'] = None
+    return predict_salary(vacancy['payment_from'], vacancy['payment_to'])
 
 
 def predict_rub_salary_hh(vacancy: dict):
