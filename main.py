@@ -41,7 +41,7 @@ def get_vacancies_from_all_pages_hh(url, params):
     vacancies_search_result = get_vacancies(url, params)
     count_of_pages = vacancies_search_result['pages']
 
-    if count_of_pages > 0:
+    if count_of_pages:
         vacancies_search_result['items'] = []
         for page in range(count_of_pages):
             params['page'] = page
