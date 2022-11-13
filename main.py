@@ -5,10 +5,6 @@ from dotenv import load_dotenv
 import requests as requests
 from terminaltables import AsciiTable
 
-import common_func
-
-sj_all_pages_vacancies = {'objects': []}
-
 
 def get_vacancies(url, params=None, payload=None):
     response = requests.get(url, headers=payload, params=params)
@@ -184,4 +180,5 @@ def main():
 
 
 if __name__ == '__main__':
+    sj_all_pages_vacancies = {'objects': []}
     main()
