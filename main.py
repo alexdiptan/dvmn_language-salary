@@ -53,15 +53,16 @@ def get_vacancies_from_all_pages_hh(url, params):
 
 
 def get_vacancies_from_all_pages_sj(url, params, payload):
-    vacancies_search_result = get_vacancies(url, params, payload)
-    sj_all_pages_vacancies['objects'].extend(vacancies_search_result['objects'])
-    sj_all_pages_vacancies['total'] = vacancies_search_result['total']
+    is_next_page_found = True
+    sj_all_pages_vacancies = {'objects': [],
+                              'total': 0}
 
-    if not vacancies_search_result['more']:
-        return sj_all_pages_vacancies
-
-    params['page'] += 1
-    get_vacancies_from_all_pages_sj(url, params, payload)
+    while is_next_page_found:
+        vacancies_from_page = get_vacancies(url, params, payload)
+        sj_all_pages_vacancies['objects'].extend(vacancies_from_page['objects'])
+        sj_all_pages_vacancies['total'] = vacancies_from_page['total']
+        is_next_page_found = vacancies_from_page['more']
+        params['page'] += 1
 
     return sj_all_pages_vacancies
 
@@ -169,14 +170,13 @@ def get_sj_statistic(programming_languages: list, token: str) -> dict:
 def main():
     load_dotenv()
     sj_token = os.environ['SJ_SECRET_KEY']
-    sj_all_pages_vacancies = {'objects': []}
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--programming_languages", default=['Python'], nargs='*',
                         help="Salary statistics by programming languages.")
     args = parser.parse_args()
 
-    draw_table(get_hh_statistic(args.programming_languages), 'HeadHunter Moscow')
+    # draw_table(get_hh_statistic(args.programming_languages), 'HeadHunter Moscow')
     draw_table(get_sj_statistic(args.programming_languages, sj_token), 'SuperJob Moscow')
 
 
