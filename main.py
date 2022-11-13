@@ -169,6 +169,7 @@ def get_sj_statistic(programming_languages: list, token: str) -> dict:
 def main():
     load_dotenv()
     sj_token = os.environ['SJ_SECRET_KEY']
+    sj_all_pages_vacancies = {'objects': []}
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--programming_languages", default=['Python'], nargs='*',
@@ -180,5 +181,4 @@ def main():
 
 
 if __name__ == '__main__':
-    sj_all_pages_vacancies = {'objects': []}
     main()
