@@ -176,7 +176,7 @@ def main():
                         help="Salary statistics by programming languages.")
     args = parser.parse_args()
 
-    # draw_table(get_hh_statistic(args.programming_languages), 'HeadHunter Moscow')
+    draw_table(get_hh_statistic(args.programming_languages), 'HeadHunter Moscow')
     draw_table(get_sj_statistic(args.programming_languages, sj_token), 'SuperJob Moscow')
 
 
