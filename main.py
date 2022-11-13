@@ -5,6 +5,10 @@ from dotenv import load_dotenv
 import requests as requests
 from terminaltables import AsciiTable
 
+import common_func
+
+sj_all_pages_vacancies = {'objects': []}
+
 
 def get_vacancies(url, params=None, payload=None):
     response = requests.get(url, headers=payload, params=params)
@@ -20,7 +24,7 @@ def average(salary_avg: list) -> int:
         return 0
 
 
-def get_statistic_by_programming_language(vacancies: dict, vacancies_found, source='hh') -> dict:
+def get_statistic_by_programming_language(vacancies: list, vacancies_found, source='hh') -> dict:
     programming_language_statistic = {}
     salaries = []
     for vacancy in vacancies:
@@ -54,18 +58,16 @@ def get_vacancies_from_all_pages_hh(url, params):
 
 def get_vacancies_from_all_pages_sj(url, params, payload):
     vacancies_search_result = get_vacancies(url, params, payload)
-    page = 0
+    sj_all_pages_vacancies['objects'].extend(vacancies_search_result['objects'])
+    sj_all_pages_vacancies['total'] = vacancies_search_result['total']
 
     if not vacancies_search_result['more']:
-        return vacancies_search_result
-    while get_vacancies(url, params, payload)['more']:
-        vacancies_search_result['objects'] = []
-        params['page'] = page
-        vacancies_from_page = get_vacancies(url, params, payload)['objects']
-        vacancies_search_result['objects'].extend(vacancies_from_page)
-        page += 1
+        return sj_all_pages_vacancies
 
-    return vacancies_search_result
+    params['page'] += 1
+    get_vacancies_from_all_pages_sj(url, params, payload)
+
+    return sj_all_pages_vacancies
 
 
 def draw_table(languages_statistic: dict, title: str):
@@ -162,7 +164,8 @@ def get_sj_statistic(programming_languages: list, token: str) -> dict:
         sj_statistic_by_languages[programming_language] = get_statistic_by_programming_language(sj_vacancies['objects'],
                                                                                                 sj_vacancies['total'],
                                                                                                 'sj')
-        sj_params["page"] = 0
+        sj_params['page'] = 0
+        sj_vacancies['objects'] = []
 
     return sj_statistic_by_languages
 
